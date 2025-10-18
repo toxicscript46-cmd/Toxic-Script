@@ -4559,7 +4559,9 @@ Gift:AddButton(
 local Credits = window:AddTab("Credits")
 
 Credits:AddLabel("Toxic Free Version")
-Credits:AddLabel("Script Hecho por: Rafael")
+Credits:AddLabel("Script Hecho por: Rafael"
+Credits:AddLabel("Los Botones de Abajo Te Copian Los Links Al Portapapeles")
+
 Credits:AddButton("Servidor De Discord", function()
     setclipboard("https://discord.gg/YPMXaJGQX")
 end)
