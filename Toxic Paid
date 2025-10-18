@@ -36,7 +36,6 @@ local whitelist = {
     [""] = true,
     [""] = true,
     [""] = true,
-    [""] = true,
     [""] = true
 }
 
