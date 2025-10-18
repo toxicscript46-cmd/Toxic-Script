@@ -1,28 +1,42 @@
+-- 🔒 Blacklist por nombre (con Kick automático)
+-- Hecho por RafaelXJxss y ChatGPT
+
 local Players = game:GetService("Players")
 
--- ⚙️ Configuración de la blacklist (usa UserId para más seguridad)
-local blacklist = {
-    {UserId = 2219273992, Reason = "Prueba"},
-    {UserId = 98765432, Reason = "Toxic player"},
+-- ⚙️ Lista de nombres bloqueados
+local nameBlacklist = {
+    -- Escribe los nombres EXACTOS (distingue mayúsculas/minúsculas)
+    "elpepe2929290",
+    "RafaelFake",
+    "ExploitUser",
+    -- puedes agregar más:
+    -- "OtroNombre",
 }
 
+-- 🧠 Función para verificar si el jugador está en la blacklist
 local function isBlacklisted(player)
-    for _, entry in pairs(blacklist) do
-        if entry.UserId == player.UserId then
-            return true, entry.Reason
+    for _, name in ipairs(nameBlacklist) do
+        if string.lower(player.Name) == string.lower(name) then
+            return true, "Usuario bloqueado"
+        end
+        if string.lower(player.DisplayName) == string.lower(name) then
+            return true, "DisplayName bloqueado"
         end
     end
     return false
 end
 
+-- 🚫 Evento: cuando un jugador entra
 Players.PlayerAdded:Connect(function(player)
     local blacklisted, reason = isBlacklisted(player)
     if blacklisted then
-        task.wait(1) -- espera un segundo para evitar error en el kick
+        task.wait(1)
         player:Kick("Has sido expulsado del juego.\nMotivo: " .. (reason or "No especificado"))
-        warn("[BLACKLIST] Jugador bloqueado: " .. player.Name .. " (" .. player.UserId .. ") - Razón: " .. tostring(reason))
+        warn("[BLACKLIST] " .. player.Name .. " fue expulsado. Razón: " .. tostring(reason))
     end
 end)
+
+print("[✅] Blacklist por nombre cargada correctamente.")
 
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/rafael25ic-blip/phoenix-cracked/refs/heads/main/Librerya%20Phoenix%20Crack"))()
 
