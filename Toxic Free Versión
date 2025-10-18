@@ -1,61 +1,34 @@
-local whitelist = {
-    ["Rafael25IC"] = true,
-    ["elpepe2929290"] = true,
-    ["Doritosdezz_0"] = true,
-    ["kkaconsal"] = true,
-    ["jmg6600"] = true,
-    ["heri631"] = true,
-    ["THEKINGOAT011"] = true,
-    ["loxa214"] = true,
-    ["TheReal9818"] = true,
-    ["Tinagarciax"] = true,
-    ["Gato_pro239"] = true,
-    ["pro9pup"] = true,
-    ["ilopo124"] = true,
-    ["Mathi_sann"] = true,
-    ["ghost_secu4"] = true,
-    ["erneoroytxd"] = true,
-    ["guhtfyxy"] = true,
-    ["BrizzyTK"] = true,
-    ["JohanAxelRS"] = true,
-    ["KKSHIPAPI"] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true, 
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true,
-    [""] = true
+local Players = game:GetService("Players")
+
+-- ⚙️ Configuración de la blacklist (usa UserId para más seguridad)
+local blacklist = {
+    {UserId = 2219273992, Reason = "Prueba"},
+    {UserId = 98765432, Reason = "Toxic player"},
 }
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-if not whitelist[LocalPlayer.Name] then
-    LocalPlayer:Kick("No estas en WhiteList para usar este script")
+local function isBlacklisted(player)
+    for _, entry in pairs(blacklist) do
+        if entry.UserId == player.UserId then
+            return true, entry.Reason
+        end
+    end
+    return false
 end
 
+Players.PlayerAdded:Connect(function(player)
+    local blacklisted, reason = isBlacklisted(player)
+    if blacklisted then
+        task.wait(1) -- espera un segundo para evitar error en el kick
+        player:Kick("Has sido expulsado del juego.\nMotivo: " .. (reason or "No especificado"))
+        warn("[BLACKLIST] Jugador bloqueado: " .. player.Name .. " (" .. player.UserId .. ") - Razón: " .. tostring(reason))
+    end
+end)
 
--- CARGA DE LIBRERÍA
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/rafael25ic-blip/phoenix-cracked/refs/heads/main/Librerya%20Phoenix%20Crack"))()
 
--- OBTENER NOMBRE DEL JUGADOR
 local player = game.Players.LocalPlayer
 local displayName = player.DisplayName or player.Name
 
--- VENTANA PRINCIPAL
 local window = library:AddWindow("Toxic Free Version | Bienvenido " .. displayName, {
     main_color = Color3.fromRGB(34, 56, 34),
     min_size = Vector2.new(600, 820),
@@ -811,7 +784,7 @@ local PET_NAME = "Swift Samurai"
 local ROCK_NAME = "Rock5M"
 local PROTEIN_EGG_NAME = "ProteinEgg"
 local PROTEIN_EGG_INTERVAL = 30 * 60 -- 30 min
-local REPS_PER_CYCLE = 160
+local REPS_PER_CYCLE = 45
 local REP_DELAY = 0.01
 local ROCK_INTERVAL = 5
 local MAX_PING = 700
@@ -1085,7 +1058,6 @@ local function createRockSwitch(name, durability)
     end)
 end
 
--- 🪨 Lista de rocas (mismo orden original)
 createRockSwitch("Tiny Island Rock", 0)
 createRockSwitch("Starter Island Rock", 100)
 createRockSwitch("Legend Beach Rock", 5000)
@@ -1096,7 +1068,6 @@ createRockSwitch("Legend Gym Rock", 1000000)
 createRockSwitch("Muscle King Gym Rock", 5000000)
 createRockSwitch("Ancient Jungle Rock", 10000000)
 
--- 🧠 Variables globales (se mantienen iguales)
 getgenv().StarterIslandBenchPress = false
 getgenv().StarterIslandSquat = false
 getgenv().StarterIslandDeadlift = false
@@ -4614,9 +4585,12 @@ local Credits = window:AddTab("Credits")
 
 Credits:AddLabel("Toxic Free Version")
 Credits:AddLabel("Script Hecho por: Rafael")
-creditsTab:AddButton("Servidor De Discord", function()
-    setclipboard("https://discord.gg/4jDHeEsNm")
+CreditsTab:AddButton("Servidor De Discord", function()
+    setclipboard("https://discord.gg/YPMXaJGQX")
 end)
-creditsTab:AddButton("Mi Perfil De TikTok", function()
+CreditsTab:AddButton("Mi Perfil De TikTok", function()
     setclipboard("https://www.tiktok.com/@deathkiller770?_t=ZS-90ejFhgDi9V&_r=1")
+end)
+CreditsTab:AddButton("Clan MVX (Grupo de WhatsApp)", function()
+    setclipboard("https://chat.whatsapp.com/GmBgBK1nkRQ1Q37x1LKhXq?mode=wwt")
 end)
