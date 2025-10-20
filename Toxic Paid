@@ -4099,6 +4099,140 @@ task.spawn(function()
 end)
 
 
+-- Advanced Stats dentro de "estadisticas"
+estadisticas:AddLabel("————————————————————————————")
+estadisticas:AddLabel("Stats Avanzadas:").TextSize = 24
+
+local enemyHealthLabel = estadisticas:AddLabel("Vida del Enemigo: N/A")
+enemyHealthLabel.TextSize = 20
+enemyHealthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local playerDamageLabel = estadisticas:AddLabel("Tu Daño: N/A")
+playerDamageLabel.TextSize = 20
+playerDamageLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local hitsToKillLabel = estadisticas:AddLabel("Golpes para Matar: N/A")
+hitsToKillLabel.TextSize = 20
+hitsToKillLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- 🧮 Función para calcular la vida total del jugador enemigo
+local function calculateEnemyHealth(targetPlayer)
+    if not targetPlayer then return 0 end
+
+    local baseDura = 0
+    local durabilityStat =
+        targetPlayer:FindFirstChild("Durability") or
+        (targetPlayer:FindFirstChild("leaderstats") and targetPlayer.leaderstats:FindFirstChild("Durability"))
+
+    if durabilityStat then
+        baseDura = durabilityStat.Value
+    end
+
+    local totalMultiplier = 1
+
+    local ultFolder = targetPlayer:FindFirstChild("ultimatesFolder")
+    if ultFolder then
+        local infernalHealth = ultFolder:FindFirstChild("Infernal Health")
+        if infernalHealth then
+            totalMultiplier += 0.15 * (infernalHealth.Value or 0)
+        end
+    end
+
+    local backpack = targetPlayer:FindFirstChild("Backpack")
+    if backpack then
+        local equippedPets = backpack:FindFirstChild("EquippedPets") or backpack:FindFirstChild("equippedPets")
+        if equippedPets then
+            for _, pet in ipairs(equippedPets:GetChildren()) do
+                if string.lower(tostring(pet)):match("mighty") and string.lower(tostring(pet)):match("monster") then
+                    totalMultiplier += 0.5
+                    break
+                end
+            end
+        end
+    end
+
+    return baseDura * totalMultiplier
+end
+
+-- ⚔️ Daño del jugador local
+local function calculateLocalPlayerDamage()
+    local LocalPlayer = game.Players.LocalPlayer
+    if not LocalPlayer then return 0 end
+
+    local strengthStat = nil
+    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+    if leaderstats then
+        strengthStat = leaderstats:FindFirstChild("Strength")
+    end
+    if not strengthStat then return 0 end
+
+    local baseDamage = strengthStat.Value * 0.0667
+    local totalMultiplier = 1
+
+    local ultFolder = LocalPlayer:FindFirstChild("ultimatesFolder")
+    if ultFolder then
+        local demonDamage = ultFolder:FindFirstChild("Demon Damage")
+        if demonDamage then
+            totalMultiplier += math.min(0.1 * (demonDamage.Value or 0), 0.5)
+        end
+    end
+
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if backpack then
+        local equippedPets = backpack:FindFirstChild("EquippedPets") or backpack:FindFirstChild("equippedPets")
+        if equippedPets then
+            for _, pet in ipairs(equippedPets:GetChildren()) do
+                if string.lower(tostring(pet)):match("wild") and string.lower(tostring(pet)):match("wizard") then
+                    totalMultiplier += 0.5
+                    break
+                end
+            end
+        end
+    end
+
+    return baseDamage * totalMultiplier
+end
+
+-- 🧠 Cálculo de golpes necesarios
+local function calculateHitsToKill(health, damage)
+    if damage <= 0 then return "∞" end
+    local hits = math.ceil(health / damage)
+    if hits > 50 then
+        return "∞"
+    elseif hits < 1 then
+        return 1
+    else
+        return hits
+    end
+end
+
+-- 🔁 Actualización en tiempo real
+local function updateAdvancedStats(targetPlayer)
+    if not targetPlayer then
+        enemyHealthLabel.Text = "Vida del Enemigo: N/A"
+        playerDamageLabel.Text = "Tu Daño: N/A"
+        hitsToKillLabel.Text = "Golpes para Matar: N/A"
+        return
+    end
+
+    local enemyHealth = calculateEnemyHealth(targetPlayer)
+    local playerDamage = calculateLocalPlayerDamage()
+    local hitsToKill = calculateHitsToKill(enemyHealth, playerDamage)
+
+    enemyHealthLabel.Text = "Vida del Enemigo: " .. FormatDisplay(enemyHealth)
+    playerDamageLabel.Text = "Tu Daño: " .. FormatDisplay(playerDamage)
+    hitsToKillLabel.Text = "Golpes para Matar: " .. tostring(hitsToKill)
+end
+
+-- 🔄 Bucle de actualización vinculado al jugador seleccionado
+task.spawn(function()
+    while task.wait(0.3) do
+        local selectedPlayer = game.Players:FindFirstChild(SelectPlayerName)
+        updateAdvancedStats(selectedPlayer)
+    end
+end)
+
+
 
 local teleport = window:AddTab("Teleport")
 
