@@ -1,10 +1,14 @@
 
+
+-- CARGA DE LIBRERÍA
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/rafael25ic-blip/phoenix-cracked/refs/heads/main/Librerya%20Phoenix%20Crack"))()
 
+-- OBTENER NOMBRE DEL JUGADOR
 local player = game.Players.LocalPlayer
 local displayName = player.DisplayName or player.Name
 
-local window = library:AddWindow("Toxic Free Version | Bienvenido " .. displayName, {
+-- VENTANA PRINCIPAL
+local window = library:AddWindow("Toxic Paid V3, Gratis solo por hoy | Bienvenido " .. displayName, {
     main_color = Color3.fromRGB(34, 56, 34),
     min_size = Vector2.new(600, 820),
     can_resize = false,
@@ -14,7 +18,137 @@ local AutoFarm = window:AddTab("Farm OP")
 AutoFarm:Show()
 
 
-AutoFarm:AddSwitch("Fuerza OP", function(state)
+-- Estado inicial
+getgenv()._AutoRepFarmEnabled = false  
+
+-- Switch en la librería
+AutoFarm:AddSwitch("Fuerza OP (Usar si tu ping es menor que 250 ms)", function(state)
+    getgenv()._AutoRepFarmEnabled = state
+    warn("[Auto Rep Farm] Estado cambiado a:", state and "ON" or "OFF")
+end)
+
+-- Servicios
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local Stats = game:GetService("Stats")
+local LocalPlayer = Players.LocalPlayer
+
+-- Configuración
+local PET_NAME = "Swift Samurai"
+local ROCK_NAME = "Rock5M"
+local PROTEIN_EGG_NAME = "ProteinEgg"
+local PROTEIN_EGG_INTERVAL = 30 * 60
+local REPS_PER_CYCLE = 185
+local REP_DELAY = 0.01
+local ROCK_INTERVAL = 1
+local MAX_PING = 1100   -- si pasa esto, pausa
+local MIN_PING = 300   -- si baja de esto, reanuda
+
+-- Variables internas
+local HumanoidRootPart
+local lastProteinEggTime = 0
+local lastRockTime = 0
+
+-- Funciones
+local function getPing()
+    local success, ping = pcall(function()
+        return Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+    end)
+    return success and ping or 999
+end
+
+local function updateCharacterRefs()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    HumanoidRootPart = character:WaitForChild("HumanoidRootPart", 5)
+end
+
+local function equipPet()
+    local petsFolder = LocalPlayer:FindFirstChild("petsFolder")
+    if petsFolder and petsFolder:FindFirstChild("Unique") then
+        for _, pet in pairs(petsFolder.Unique:GetChildren()) do
+            if pet.Name == PET_NAME then
+                ReplicatedStorage.rEvents.equipPetEvent:FireServer("equipPet", pet)
+                break
+            end
+        end
+    end
+end
+
+local function eatProteinEgg()
+    if LocalPlayer:FindFirstChild("Backpack") then
+        for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+            if item.Name == PROTEIN_EGG_NAME then
+                ReplicatedStorage.rEvents.eatEvent:FireServer("eat", item)
+                break
+            end
+        end
+    end
+end
+
+local function hitRock()
+    local rock = workspace:FindFirstChild(ROCK_NAME)
+    if rock and HumanoidRootPart then
+        HumanoidRootPart.CFrame = rock.CFrame * CFrame.new(0, 0, -5)
+        ReplicatedStorage.rEvents.hitEvent:FireServer("hit", rock)
+    end
+end
+
+-- Loop principal (siempre corriendo)
+task.spawn(function()
+    updateCharacterRefs()
+    equipPet()
+    lastProteinEggTime = tick()
+    lastRockTime = tick()
+
+    local farmingPaused = false
+
+    while true do
+        if getgenv()._AutoRepFarmEnabled then
+            local ping = getPing()
+
+            -- Pausa si ping alto
+            if ping > MAX_PING then
+                if not farmingPaused then
+                    warn("[Auto Rep Farm] Ping alto ("..math.floor(ping).."ms), pausando farmeo...")
+                    farmingPaused = true
+                end
+            end
+
+            -- Reanuda si ping bajo
+            if ping <= MIN_PING then
+                if farmingPaused then
+                    warn("[Auto Rep Farm] Ping bajo ("..math.floor(ping).."ms), reanudando farmeo...")
+                    farmingPaused = false
+                end
+            end
+
+            -- Solo farmea si no está pausado
+            if not farmingPaused then
+                if LocalPlayer:FindFirstChild("muscleEvent") then
+                    for i = 1, REPS_PER_CYCLE do
+                        LocalPlayer.muscleEvent:FireServer("rep")
+                    end
+                end
+
+                if tick() - lastProteinEggTime >= PROTEIN_EGG_INTERVAL then
+                    eatProteinEgg()
+                    lastProteinEggTime = tick()
+                end
+
+                if tick() - lastRockTime >= ROCK_INTERVAL then
+                    hitRock()
+                    lastRockTime = tick()
+                end
+            end
+        end
+
+        task.wait(REP_DELAY)
+    end
+end)
+
+
+-- 1️⃣ Switch: Fuerza OP
+AutoFarm:AddSwitch("Fuerza OP (No ocupa minimo de Ping)", function(state)
     getgenv()._AutoRepFarmEnabled = state
     warn("[Auto Rep Farm] Estado cambiado a:", state and "ON" or "OFF")
 end)
@@ -29,7 +163,7 @@ local PET_NAME = "Swift Samurai"
 local ROCK_NAME = "Rock5M"
 local PROTEIN_EGG_NAME = "ProteinEgg"
 local PROTEIN_EGG_INTERVAL = 30 * 60 -- 30 min
-local REPS_PER_CYCLE = 180
+local REPS_PER_CYCLE = 185
 local REP_DELAY = 0.01
 local ROCK_INTERVAL = 1
 local MAX_PING = 1100
@@ -128,6 +262,7 @@ end
 
 
 
+-- 2️⃣ Switch: Eat Egg (60 Min)
 local autoEatEnabled = false
 local function eatProteinEggNew()
     local player = game.Players.LocalPlayer
@@ -163,6 +298,7 @@ AutoFarm:AddSwitch("Eat Egg (60 Min)", function(state)
 end)
 
 
+-- 2️⃣ Switch: Eat Egg (30 Min)
 local autoEatEnabled = false
 local function eatProteinEggNew()
     local player = game.Players.LocalPlayer
@@ -759,7 +895,7 @@ local PET_NAME = "Swift Samurai"
 local ROCK_NAME = "Rock5M"
 local PROTEIN_EGG_NAME = "ProteinEgg"
 local PROTEIN_EGG_INTERVAL = 30 * 60 -- 30 min
-local REPS_PER_CYCLE = 45
+local REPS_PER_CYCLE = 160
 local REP_DELAY = 0.01
 local ROCK_INTERVAL = 5
 local MAX_PING = 700
@@ -1033,6 +1169,7 @@ local function createRockSwitch(name, durability)
     end)
 end
 
+-- 🪨 Lista de rocas (mismo orden original)
 createRockSwitch("Tiny Island Rock", 0)
 createRockSwitch("Starter Island Rock", 100)
 createRockSwitch("Legend Beach Rock", 5000)
@@ -1043,6 +1180,7 @@ createRockSwitch("Legend Gym Rock", 1000000)
 createRockSwitch("Muscle King Gym Rock", 5000000)
 createRockSwitch("Ancient Jungle Rock", 10000000)
 
+-- 🧠 Variables globales (se mantienen iguales)
 getgenv().StarterIslandBenchPress = false
 getgenv().StarterIslandSquat = false
 getgenv().StarterIslandDeadlift = false
@@ -3915,6 +4053,140 @@ task.spawn(function()
 end)
 
 
+-- Advanced Stats dentro de "estadisticas"
+estadisticas:AddLabel("————————————————————————————")
+estadisticas:AddLabel("Stats Avanzadas:").TextSize = 24
+
+local enemyHealthLabel = estadisticas:AddLabel("Vida del Enemigo: N/A")
+enemyHealthLabel.TextSize = 20
+enemyHealthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local playerDamageLabel = estadisticas:AddLabel("Tu Daño: N/A")
+playerDamageLabel.TextSize = 20
+playerDamageLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local hitsToKillLabel = estadisticas:AddLabel("Golpes para Matar: N/A")
+hitsToKillLabel.TextSize = 20
+hitsToKillLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- 🧮 Función para calcular la vida total del jugador enemigo
+local function calculateEnemyHealth(targetPlayer)
+    if not targetPlayer then return 0 end
+
+    local baseDura = 0
+    local durabilityStat =
+        targetPlayer:FindFirstChild("Durability") or
+        (targetPlayer:FindFirstChild("leaderstats") and targetPlayer.leaderstats:FindFirstChild("Durability"))
+
+    if durabilityStat then
+        baseDura = durabilityStat.Value
+    end
+
+    local totalMultiplier = 1
+
+    local ultFolder = targetPlayer:FindFirstChild("ultimatesFolder")
+    if ultFolder then
+        local infernalHealth = ultFolder:FindFirstChild("Infernal Health")
+        if infernalHealth then
+            totalMultiplier += 0.15 * (infernalHealth.Value or 0)
+        end
+    end
+
+    local backpack = targetPlayer:FindFirstChild("Backpack")
+    if backpack then
+        local equippedPets = backpack:FindFirstChild("EquippedPets") or backpack:FindFirstChild("equippedPets")
+        if equippedPets then
+            for _, pet in ipairs(equippedPets:GetChildren()) do
+                if string.lower(tostring(pet)):match("mighty") and string.lower(tostring(pet)):match("monster") then
+                    totalMultiplier += 0.5
+                    break
+                end
+            end
+        end
+    end
+
+    return baseDura * totalMultiplier
+end
+
+-- ⚔️ Daño del jugador local
+local function calculateLocalPlayerDamage()
+    local LocalPlayer = game.Players.LocalPlayer
+    if not LocalPlayer then return 0 end
+
+    local strengthStat = nil
+    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+    if leaderstats then
+        strengthStat = leaderstats:FindFirstChild("Strength")
+    end
+    if not strengthStat then return 0 end
+
+    local baseDamage = strengthStat.Value * 0.0667
+    local totalMultiplier = 1
+
+    local ultFolder = LocalPlayer:FindFirstChild("ultimatesFolder")
+    if ultFolder then
+        local demonDamage = ultFolder:FindFirstChild("Demon Damage")
+        if demonDamage then
+            totalMultiplier += math.min(0.1 * (demonDamage.Value or 0), 0.5)
+        end
+    end
+
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if backpack then
+        local equippedPets = backpack:FindFirstChild("EquippedPets") or backpack:FindFirstChild("equippedPets")
+        if equippedPets then
+            for _, pet in ipairs(equippedPets:GetChildren()) do
+                if string.lower(tostring(pet)):match("wild") and string.lower(tostring(pet)):match("wizard") then
+                    totalMultiplier += 0.5
+                    break
+                end
+            end
+        end
+    end
+
+    return baseDamage * totalMultiplier
+end
+
+-- 🧠 Cálculo de golpes necesarios
+local function calculateHitsToKill(health, damage)
+    if damage <= 0 then return "∞" end
+    local hits = math.ceil(health / damage)
+    if hits > 50 then
+        return "∞"
+    elseif hits < 1 then
+        return 1
+    else
+        return hits
+    end
+end
+
+-- 🔁 Actualización en tiempo real
+local function updateAdvancedStats(targetPlayer)
+    if not targetPlayer then
+        enemyHealthLabel.Text = "Vida del Enemigo: N/A"
+        playerDamageLabel.Text = "Tu Daño: N/A"
+        hitsToKillLabel.Text = "Golpes para Matar: N/A"
+        return
+    end
+
+    local enemyHealth = calculateEnemyHealth(targetPlayer)
+    local playerDamage = calculateLocalPlayerDamage()
+    local hitsToKill = calculateHitsToKill(enemyHealth, playerDamage)
+
+    enemyHealthLabel.Text = "Vida del Enemigo: " .. FormatDisplay(enemyHealth)
+    playerDamageLabel.Text = "Tu Daño: " .. FormatDisplay(playerDamage)
+    hitsToKillLabel.Text = "Golpes para Matar: " .. tostring(hitsToKill)
+end
+
+-- 🔄 Bucle de actualización vinculado al jugador seleccionado
+task.spawn(function()
+    while task.wait(0.3) do
+        local selectedPlayer = game.Players:FindFirstChild(SelectPlayerName)
+        updateAdvancedStats(selectedPlayer)
+    end
+end)
+
+
 
 local teleport = window:AddTab("Teleport")
 
@@ -4490,84 +4762,57 @@ task.spawn(function()
 end)
 
 
-local itemList = {
-    "Tropical Shake",
-    "Energy Shake",
-    "Protein Bar",
+local autoEatBoostsEnabled = false
+
+local boostsList = {
+    "ULTRA Shake",
     "TOUGH Bar",
     "Protein Shake",
-    "ULTRA Shake",
-    "Energy Bar"
+    "Energy Shake",
+    "Protein Bar",
+    "Energy Bar",
+    "Tropical Shake"
 }
 
-local function formatEventName(itemName)
-    local parts = {}
-    for word in itemName:gmatch("%S+") do
-        table.insert(parts, word:lower())
-    end
-    for i = 2, #parts do
-        parts[i] = parts[i]:sub(1, 1):upper() .. parts[i]:sub(2)
-    end
-    return table.concat(parts)
-end
+local function eatAllBoosts()
+    local player = game.Players.LocalPlayer
+    local backpack = player:WaitForChild("Backpack")
+    local character = player.Character or player.CharacterAdded:Wait()
 
-local function activateRandomItems(count)
-    local shuffledItems = {}
-    for _, item in ipairs(itemList) do
-        table.insert(shuffledItems, item)
-    end
-    for i = #shuffledItems, 2, -1 do
-        local j = math.random(i)
-        shuffledItems[i], shuffledItems[j] = shuffledItems[j], shuffledItems[i]
-    end
-    for i = 1, math.min(count, #shuffledItems) do
-        local tool =
-            player.Character:FindFirstChild(shuffledItems[i]) or player.Backpack:FindFirstChild(shuffledItems[i])
-        if tool then
-            local eventName = formatEventName(shuffledItems[i])
-            player.muscleEvent:FireServer(eventName, tool)
+    for _, boostName in ipairs(boostsList) do
+        local boost = backpack:FindFirstChild(boostName)
+        while boost do
+            boost.Parent = character
+            pcall(function()
+                boost:Activate()
+            end)
+            task.wait(0)
+            boost = backpack:FindFirstChild(boostName)
         end
     end
 end
 
-local eatingRunning = false
-task.spawn(
-    function()
-        while true do
-            if eatingRunning then
-                activateRandomItems(4)
-                task.wait(0.1)
-            else
-                task.wait(0.1)
-            end
+task.spawn(function()
+    while true do
+        if autoEatBoostsEnabled then
+            eatAllBoosts()
+            task.wait(2)
+        else
+            task.wait(1)
         end
     end
-)
+end)
 
-Gift:AddButton(
-    "Limpiar Inventario",
-    function(state)
-        eatingRunning = state
-        if state then
-            activateRandomItems(4)
-        end
-    end
-)
+Gift:AddSwitch("Auto Clear Inventory", function(state)
+    autoEatBoostsEnabled = state
+end)
 
 
 
 local Credits = window:AddTab("Credits")
 
-Credits:AddLabel("Toxic Free Version")
-Credits:AddLabel("Script Hecho por: Rafael"
-Credits:AddLabel("Los Botones de Abajo Te Copian Los Links Al Portapapeles")
-
-Credits:AddButton("Servidor De Discord", function()
-    setclipboard("https://discord.gg/YPMXaJGQX")
-end)
-Credits:AddButton("Mi Perfil De TikTok", function()
-    setclipboard("https://www.tiktok.com/@deathkiller770?_t=ZS-90ejFhgDi9V&_r=1")
-end)
-Credits:AddButton("Clan MVX (Grupo de WhatsApp)", function()
-    setclipboard("https://chat.whatsapp.com/GmBgBK1nkRQ1Q37x1LKhXq?mode=wwt")
-end)
+Credits:AddLabel("Toxic Paid V3")
+Credits:AddLabel("Script Hecho por: Rafael")
+Credits:AddLabel("Tiktok:DeathKiller")
+Credits:AddLabel("MVX ON TOP 🔥")
+Credits:AddLabel("JASSON MI VIEJA")
