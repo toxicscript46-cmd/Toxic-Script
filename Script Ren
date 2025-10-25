@@ -973,7 +973,7 @@ end)
 updateWhitelistedPlayersLabel()
 updateTargetPlayerLabel()
 
-Killer:AddButton("TamaÃ±o NaN", function()
+killer:AddButton("Size NaN", function()
     local args = {"changeSize", 0/0}
     game:GetService("ReplicatedStorage"):WaitForChild("rEvents"):WaitForChild("changeSpeedSizeRemote"):InvokeServer(unpack(args))
 end)
@@ -986,7 +986,7 @@ local urls = {
 }
 
 -- â¡ BotÃ³n que ejecuta todos los scripts remotos
-Killer:AddButton("Pegar Muerto", function()
+killer:AddButton("Hit Dead", function()
     for _, url in ipairs(urls) do
         spawn(function()
             local success, response = pcall(function()
@@ -1007,7 +1007,7 @@ Killer:AddButton("Pegar Muerto", function()
 end)
 
 local godModeToggle = false
-Killer:AddSwitch("modo dios (esperar peleas)", function(State)
+killer:AddSwitch("God Mode (brawl)", function(State)
     godModeToggle = State
     if State then
         task.spawn(function()
@@ -1084,7 +1084,7 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 -- BotÃ³n para dejar de seguir
-Killer:AddButton("Dejar de Seguir", function()
+killer:AddButton("Stop Following", function()
     following = false
     followTarget = nil
     print("Stopped following")
@@ -1108,7 +1108,7 @@ end)
 
 local godDamageActive = false
 
-Killer:AddSwitch("DaÃ±o con Godmode", function(state)
+killer:AddSwitch("Damage with Godmode (Stomps)", function(state)
     godDamageActive = state
     if state then
         task.spawn(function()
@@ -1140,7 +1140,7 @@ Killer:AddSwitch("DaÃ±o con Godmode", function(state)
     end
 end)
 
-local button = Killer:AddButton("congelar el agua", function()
+local button = killer:AddButton("Freeze the water", function()
    
     local WalkPart = Instance.new("Part")
     WalkPart.Parent = Game.Workspace
