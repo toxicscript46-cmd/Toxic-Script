@@ -605,144 +605,92 @@ end)
 
 local killerTab = window:AddTab("Killer")
 
-
 _G.whitelistedPlayers = _G.whitelistedPlayers or {}
 _G.targetPlayer = _G.targetPlayer or ""
 
--- Improved character checking function with timeout
+-- Función para verificar el personaje
 local function checkCharacter()
-    local player = game.Players.LocalPlayer
-    
-    if not player then
-        return nil
-    end
-    
+    local player = LocalPlayer
+    if not player then return nil end
+
     if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-        -- Wait for character to load, but with a timeout
         local startTime = tick()
         repeat
             task.wait(0.1)
-            -- If waiting too long (5 seconds), give up
-            if tick() - startTime > 5 then
-                return nil
-            end
+            if tick() - startTime > 5 then return nil end
         until player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     end
-    
     return player.Character
 end
 
--- Improved tool equipping function with error handling
+-- Equipar herramienta y atacar
 local function gettool()
     pcall(function()
-        -- Check if we have a character and humanoid
-        if not game.Players.LocalPlayer.Character or 
-           not game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
-            return
-        end
-        
-        -- Try to equip the punch tool
-        for i, v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
-            if v.Name == "Punch" then
-                game.Players.LocalPlayer.Character.Humanoid:EquipTool(v)
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("Humanoid") then return end
+        for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+            if tool.Name == "Punch" then
+                char.Humanoid:EquipTool(tool)
                 break
             end
         end
-        
-        -- Fire the punch events
-        game:GetService("Players").LocalPlayer.muscleEvent:FireServer("punch", "leftHand")
-        game:GetService("Players").LocalPlayer.muscleEvent:FireServer("punch", "rightHand")
+        LocalPlayer.muscleEvent:FireServer("punch", "leftHand")
+        LocalPlayer.muscleEvent:FireServer("punch", "rightHand")
     end)
 end
 
--- Improved kill player function with better error handling
+-- Kill player
 local function killPlayer(target)
-    -- Make sure we have our own character
-    local character = checkCharacter()
-    if not character then return end
-    
-    -- Make sure target has a character
-    if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
-        return
-    end
-    
-    -- Make sure we have the necessary parts
-    if not character:FindFirstChild("LeftHand") then
-        return
-    end
-    
-    -- Try to kill the player
+    local char = checkCharacter()
+    if not char or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return end
+    if not char:FindFirstChild("LeftHand") then return end
+
     pcall(function()
-        firetouchinterest(target.Character.HumanoidRootPart, character.LeftHand, 0)
-        task.wait(0.01) -- Small wait to ensure the touch registers
-        firetouchinterest(target.Character.HumanoidRootPart, character.LeftHand, 1)
+        firetouchinterest(target.Character.HumanoidRootPart, char.LeftHand, 0)
+        task.wait(0.01)
+        firetouchinterest(target.Character.HumanoidRootPart, char.LeftHand, 1)
         gettool()
     end)
 end
 
--- Player finding function with improved matching
+-- Buscar jugador cercano
 local function findClosestPlayer(input)
     if not input or input == "" then return nil end
-    
     input = input:lower()
-    local bestMatch = nil
-    local bestScore = 0
-    
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player ~= game.Players.LocalPlayer then
-            local username = player.Name:lower()
-            local displayName = player.DisplayName:lower()
-            
-            local usernameMatch = username:find(input, 1, true) ~= nil
-            local displayMatch = displayName:find(input, 1, true) ~= nil
-            
-            local usernameScore = 0
-            local displayScore = 0
-            
-            if usernameMatch then
-                usernameScore = (#input / #username) * 100
-                if username:sub(1, #input) == input then
-                    usernameScore = usernameScore + 50
-                end
+    local bestMatch, bestScore = nil, 0
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local uname = player.Name:lower()
+            local dname = player.DisplayName:lower()
+            local score = 0
+            if uname:find(input, 1, true) then
+                score = (#input / #uname) * 100
+                if uname:sub(1, #input) == input then score = score + 50 end
             end
-            
-            if displayMatch then
-                displayScore = (#input / #displayName) * 100
-                if displayName:sub(1, #input) == input then
-                    displayScore = displayScore + 50
-                end
+            if dname:find(input, 1, true) then
+                local dscore = (#input / #dname) * 100
+                if dname:sub(1, #input) == input then dscore = dscore + 50 end
+                score = math.max(score, dscore)
             end
-            
-            local score = math.max(usernameScore, displayScore)
-            
             if score > bestScore then
-                bestScore = score
-                bestMatch = player
+                bestScore, bestMatch = score, player
             end
         end
     end
-    
-    if bestScore > 20 then
-        return bestMatch
-    end
-    
+    if bestScore > 20 then return bestMatch end
     return nil
 end
 
+-- Labels
 local whitelistedPlayersLabel = killerTab:AddLabel("Whitelisted Players: None")
 local targetPlayerLabel = killerTab:AddLabel("Target Player: None")
 
--- Update UI functions
 local function updateWhitelistedPlayersLabel()
     if #_G.whitelistedPlayers == 0 then
         whitelistedPlayersLabel.Text = "Whitelisted Players: None"
     else
-        local displayText = "Players on the White List: "
-        for i, playerInfo in ipairs(_G.whitelistedPlayers) do
-            if i > 1 then displayText = displayText .. ", " end
-            displayText = displayText .. playerInfo
-        end
-        whitelistedPlayersLabel.Text = displayText
+        whitelistedPlayersLabel.Text = "Players on the White List: " .. table.concat(_G.whitelistedPlayers, ", ")
     end
 end
 
@@ -754,83 +702,48 @@ local function updateTargetPlayerLabel()
     end
 end
 
--- Auto-whitelist friends feature
-local autoWhitelistFriendsSwitch = killerTab:AddSwitch("Add Friends to Whitelist Automatically", function(bool)
+-- Auto-whitelist friends
+killerTab:AddSwitch("Add Friends to Whitelist Automatically", function(bool)
     _G.autoWhitelistFriends = bool
-    
     if bool then
-        pcall(function()
-            for _, player in pairs(game.Players:GetPlayers()) do
-                if player:IsFriendsWith(game.Players.LocalPlayer.UserId) then
-                    local playerInfo = player.Name .. " (" .. player.DisplayName .. ")"
-                    if not table.find(_G.whitelistedPlayers, playerInfo) then
-                        table.insert(_G.whitelistedPlayers, playerInfo)
-                    end
-                end
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p:IsFriendsWith(LocalPlayer.UserId) then
+                local info = p.Name.." ("..p.DisplayName..")"
+                if not table.find(_G.whitelistedPlayers, info) then table.insert(_G.whitelistedPlayers, info) end
             end
+        end
+        updateWhitelistedPlayersLabel()
+    end
+end)
+
+Players.PlayerAdded:Connect(function(player)
+    if _G.autoWhitelistFriends and player:IsFriendsWith(LocalPlayer.UserId) then
+        local info = player.Name.." ("..player.DisplayName..")"
+        if not table.find(_G.whitelistedPlayers, info) then
+            table.insert(_G.whitelistedPlayers, info)
             updateWhitelistedPlayersLabel()
-        end)
+        end
     end
 end)
 
--- Handle new players joining
-game.Players.PlayerAdded:Connect(function(player)
-    if _G.autoWhitelistFriends then
-        pcall(function()
-            if player:IsFriendsWith(game.Players.LocalPlayer.UserId) then
-                local playerInfo = player.Name .. " (" .. player.DisplayName .. ")"
-                if not table.find(_G.whitelistedPlayers, playerInfo) then
-                    table.insert(_G.whitelistedPlayers, playerInfo)
-                    updateWhitelistedPlayersLabel()
-                end
-            end
-        end)
-    end
-end)
-
--- Whitelist management UI
+-- Whitelist management
 killerTab:AddTextBox("Add Player to Whitelist (Name/Nickname)", function(text)
-    if text and text ~= "" then
-        local player = findClosestPlayer(text)
-        if player then
-            local playerInfo = player.Name .. " (" .. player.DisplayName .. ")"
-            
-            local alreadyWhitelisted = false
-            for _, info in ipairs(_G.whitelistedPlayers) do
-                if info:find(player.Name, 1, true) then
-                    alreadyWhitelisted = true
-                    break
-                end
-            end
-            
-            if not alreadyWhitelisted then
-                table.insert(_G.whitelistedPlayers, playerInfo)
-                updateWhitelistedPlayersLabel()
-            end
+    local player = findClosestPlayer(text)
+    if player then
+        local info = player.Name.." ("..player.DisplayName..")"
+        if not table.find(_G.whitelistedPlayers, info) then
+            table.insert(_G.whitelistedPlayers, info)
+            updateWhitelistedPlayersLabel()
         end
     end
 end)
 
 killerTab:AddTextBox("Remove Player from Whitelist (Name/Nickname)", function(text)
-    if text and text ~= "" then
-        local textLower = text:lower()
-        for i, playerInfo in ipairs(_G.whitelistedPlayers) do
-            if playerInfo:lower():find(textLower, 1, true) then
-                table.remove(_G.whitelistedPlayers, i)
-                updateWhitelistedPlayersLabel()
-                return
-            end
-        end
-        
-        local player = findClosestPlayer(text)
-        if player then
-            for i, playerInfo in ipairs(_G.whitelistedPlayers) do
-                if playerInfo:find(player.Name, 1, true) then
-                    table.remove(_G.whitelistedPlayers, i)
-                    updateWhitelistedPlayersLabel()
-                    break
-                end
-            end
+    for i, info in ipairs(_G.whitelistedPlayers) do
+        if info:lower():find(text:lower(), 1, true) then
+            table.remove(_G.whitelistedPlayers, i)
+            updateWhitelistedPlayersLabel()
+            return
         end
     end
 end)
@@ -840,62 +753,36 @@ killerTab:AddButton("Clear WhiteList", function()
     updateWhitelistedPlayersLabel()
 end)
 
--- Improved auto-kill all feature with better error handling and reliability
-local autoKillAllSwitch = killerTab:AddSwitch("Automatically Remove Everyone (Except Whitelist)", function(bool)
-    _G.autoKillAll = bool
-    
-    if bool then
+-- Auto-kill all
+killerTab:AddSwitch("Automatically Remove Everyone (Except Whitelist)", function(state)
+    _G.autoKillAll = state
+    if state then
         spawn(function()
             while _G.autoKillAll do
-                pcall(function()
-                    local players = game:GetService("Players"):GetPlayers()
-                    
-                    for _, player in ipairs(players) do
-                        if player == game.Players.LocalPlayer or not _G.autoKillAll then
-                            continue
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p ~= LocalPlayer then
+                        local whitelisted = false
+                        for _, w in ipairs(_G.whitelistedPlayers) do
+                            if w:find(p.Name, 1, true) then whitelisted = true break end
                         end
-                        
-                        -- Check if player is whitelisted
-                        local isWhitelisted = false
-                        for _, whitelistedInfo in ipairs(_G.whitelistedPlayers) do
-                            if whitelistedInfo:find(player.Name, 1, true) then
-                                isWhitelisted = true
-                                break
-                            end
-                        end
-                        
-                        -- Only kill if not whitelisted and has a character
-                        if not isWhitelisted and player.Character and 
-                           player.Character:FindFirstChild("HumanoidRootPart") and
-                           player.Character:FindFirstChild("Humanoid") and
-                           player.Character.Humanoid.Health > 0 then
-                            
-                            -- Try to kill the player with error handling
-                            pcall(function()
-                                killPlayer(player)
-                            end)
-                            
-                            -- Small wait between kills to prevent overload
+                        if not whitelisted and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                            killPlayer(p)
                             task.wait(0.05)
                         end
                     end
-                end)
-                
-                -- Wait a bit before the next cycle, but not too long
+                end
                 task.wait(0.2)
             end
         end)
     end
 end)
 
--- Target player management
+-- Target player
 killerTab:AddTextBox("Select Target Player (Name/Nickname)", function(text)
-    if text and text ~= "" then
-        local player = findClosestPlayer(text)
-        if player then
-            _G.targetPlayer = player.Name .. " (" .. player.DisplayName .. ")"
-            updateTargetPlayerLabel()
-        end
+    local player = findClosestPlayer(text)
+    if player then
+        _G.targetPlayer = player.Name.." ("..player.DisplayName..")"
+        updateTargetPlayerLabel()
     end
 end)
 
@@ -904,80 +791,55 @@ killerTab:AddButton("Remove Target", function()
     updateTargetPlayerLabel()
 end)
 
--- Improved auto-kill target feature
-local autoKillTargetSwitch = killerTab:AddSwitch("Delete Target Automatically", function(bool)
-    _G.autoKillTarget = bool
-    
-    if bool and _G.targetPlayer ~= "" then
+killerTab:AddSwitch("Delete Target Automatically", function(state)
+    _G.autoKillTarget = state
+    if state and _G.targetPlayer ~= "" then
         spawn(function()
             while _G.autoKillTarget and _G.targetPlayer ~= "" do
-                pcall(function()
-                    local targetName = _G.targetPlayer:match("^([^%(]+)")
-                    if targetName then
-                        targetName = targetName:gsub("%s+$", "")
-                        local targetPlayer = game.Players:FindFirstChild(targetName)
-                        if targetPlayer and targetPlayer.Character and 
-                           targetPlayer.Character:FindFirstChild("HumanoidRootPart") and
-                           targetPlayer.Character:FindFirstChild("Humanoid") and
-                           targetPlayer.Character.Humanoid.Health > 0 then
-                            
-                            killPlayer(targetPlayer)
-                        end
-                    end
-                end)
+                local name = _G.targetPlayer:match("^([^%(]+)") and _G.targetPlayer:match("^([^%(]+)"):gsub("%s+$","")
+                local target = Players:FindFirstChild(name)
+                if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                    killPlayer(target)
+                end
                 task.wait(0.1)
             end
         end)
     end
 end)
 
--- Manual kill buttons
+-- Manual buttons
 killerTab:AddButton("Remove Everyone (Except Whitelist)", function()
-    pcall(function()
-        for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
-            if player ~= game.Players.LocalPlayer then
-                local isWhitelisted = false
-                for _, whitelistedInfo in ipairs(_G.whitelistedPlayers) do
-                    if whitelistedInfo:find(player.Name, 1, true) then
-                        isWhitelisted = true
-                        break
-                    end
-                end
-                
-                if not isWhitelisted and player.Character and 
-                   player.Character:FindFirstChild("HumanoidRootPart") then
-                    killPlayer(player)
-                    task.wait(0.05)
-                end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local whitelisted = false
+            for _, w in ipairs(_G.whitelistedPlayers) do
+                if w:find(p.Name, 1, true) then whitelisted = true break end
+            end
+            if not whitelisted and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                killPlayer(p)
+                task.wait(0.05)
             end
         end
-    end)
+    end
 end)
 
 killerTab:AddButton("Delete Target", function()
-    if _G.targetPlayer ~= "" then
-        pcall(function()
-            local targetName = _G.targetPlayer:match("^([^%(]+)")
-            if targetName then
-                targetName = targetName:gsub("%s+$", "")
-                local targetPlayer = game.Players:FindFirstChild(targetName)
-                if targetPlayer then
-                    killPlayer(targetPlayer)
-                end
-            end
-        end)
-    end
+    local name = _G.targetPlayer:match("^([^%(]+)") and _G.targetPlayer:match("^([^%(]+)"):gsub("%s+$","")
+    local target = Players:FindFirstChild(name)
+    if target then killPlayer(target) end
 end)
 
 -- Initialize UI
 updateWhitelistedPlayersLabel()
 updateTargetPlayerLabel()
 
+-- Size NaN button
 killerTab:AddButton("Size NaN", function()
     local args = {"changeSize", 0/0}
-    game:GetService("ReplicatedStorage"):WaitForChild("rEvents"):WaitForChild("changeSpeedSizeRemote"):InvokeServer(unpack(args))
+    ReplicatedStorage:WaitForChild("rEvents"):WaitForChild("changeSpeedSizeRemote"):InvokeServer(unpack(args))
 end)
--- ð Lista de RAWs a ejecutar
+
+-- RAW execution
 local urls = {
     "https://raw.githubusercontent.com/SadOz8/Stuffs/refs/heads/main/Crack",
     "https://raw.githubusercontent.com/SadOz8/Stuffs/refs/heads/main/Crack2",
@@ -986,156 +848,105 @@ local urls = {
     "https://raw.githubusercontent.com/SadOz8/Stuffs/refs/heads/main/Crack6"
 }
 
--- â¡ BotÃ³n que ejecuta todos los scripts remotos
 killerTab:AddButton("Hit Dead", function()
     for _, url in ipairs(urls) do
         spawn(function()
-            local success, response = pcall(function()
-                return game:HttpGet(url)
-            end)
+            local success, response = pcall(game.HttpGet, game, url)
             if success and response then
-                local loadSuccess, err = pcall(function()
-                    loadstring(response)()
-                end)
-                if not loadSuccess then
-                    warn("[Pegar Muerto] Error ejecutando raw:", url, err)
-                end
+                pcall(loadstring, response)
             else
-                warn("[Pegar Muerto] No se pudo cargar:", url)
+                warn("No se pudo cargar:", url)
             end
         end)
     end
 end)
 
+-- God Mode brawl
 local godModeToggle = false
-killerTab:AddSwitch("God Mode (brawl)", function(State)
-    godModeToggle = State
-    if State then
+killerTab:AddSwitch("God Mode (brawl)", function(state)
+    godModeToggle = state
+    if state then
         task.spawn(function()
             while godModeToggle do
-                game:GetService("ReplicatedStorage").rEvents.brawlEvent:FireServer("joinBrawl")
+                ReplicatedStorage.rEvents.brawlEvent:FireServer("joinBrawl")
                 task.wait()
             end
         end)
     end
 end)
--- ð Teleport / Follow System (versiÃ³n auto-follow desde Dropdown)
 
--- ð Auto Follow (TP detrÃ¡s del jugador en vez de caminar)
+-- Auto Follow
 local following = false
 local followTarget = nil
 
--- FunciÃ³n auxiliar: TP detrÃ¡s del jugador
-function followPlayer(targetPlayer)
+function followPlayer(target)
     local myChar = LocalPlayer.Character
-    local targetChar = targetPlayer.Character
-
+    local targetChar = target.Character
     if not (myChar and targetChar) then return end
     local myHRP = myChar:FindFirstChild("HumanoidRootPart")
     local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-
     if myHRP and targetHRP then
-        -- ð Calcular posiciÃ³n detrÃ¡s del jugador (3 studs atrÃ¡s)
-        local followPos = targetHRP.Position - (targetHRP.CFrame.LookVector * 3)
-        -- ð Teletransportar siempre recto
-        myHRP.CFrame = CFrame.new(followPos, targetHRP.Position)
+        local pos = targetHRP.Position - (targetHRP.CFrame.LookVector*3)
+        myHRP.CFrame = CFrame.new(pos, targetHRP.Position)
     end
 end
 
--- Dropdown dinÃ¡mico de jugadores
-local followDropdown = Killer:AddDropdown("Seguir Jugador (TP)", function(selected)
-    if selected and selected ~= "" then
-        local target = Players:FindFirstChild(selected)
-        if target then
-            followTarget = target.Name
-            following = true
-            print("Started following:", target.Name)
-
-            -- TP inmediato al seleccionarlo
-            followPlayer(target)
-        end
+local followDropdown = killerTab:AddDropdown("Seguir Jugador (TP)", function(selected)
+    local target = Players:FindFirstChild(selected)
+    if target then
+        followTarget = target.Name
+        following = true
+        followPlayer(target)
     end
 end)
 
--- Inicializar lista de jugadores
-for _, player in ipairs(Players:GetPlayers()) do
-    if player ~= LocalPlayer then
-        followDropdown:Add(player.Name)
-    end
+for _, p in ipairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then followDropdown:Add(p.Name) end
 end
 
--- Mantener lista actualizada
-Players.PlayerAdded:Connect(function(player)
-    if player ~= LocalPlayer then
-        followDropdown:Add(player.Name)
-    end
+Players.PlayerAdded:Connect(function(p)
+    if p ~= LocalPlayer then followDropdown:Add(p.Name) end
 end)
 
-Players.PlayerRemoving:Connect(function(player)
+Players.PlayerRemoving:Connect(function(p)
     followDropdown:Clear()
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer then
-            followDropdown:Add(plr.Name)
-        end
+        if plr ~= LocalPlayer then followDropdown:Add(plr.Name) end
     end
-    if followTarget == player.Name then
-        followTarget = nil
-        following = false
-    end
+    if followTarget == p.Name then followTarget=false followTarget=nil end
 end)
 
--- BotÃ³n para dejar de seguir
 killerTab:AddButton("Stop Following", function()
-    following = false
-    followTarget = nil
-    print("Stopped following")
+    following=false
+    followTarget=nil
 end)
 
--- Loop de seguimiento automÃ¡tico
 task.spawn(function()
     while true do
-        task.wait(0.2) -- cada 0.2s para actualizar TP
+        task.wait(0.2)
         if following and followTarget then
             local target = Players:FindFirstChild(followTarget)
-            if target then
-                followPlayer(target)
-            else
-                following = false
-                followTarget = nil
-            end
+            if target then followPlayer(target) else following=false followTarget=nil end
         end
     end
 end)
 
+-- Damage Godmode
 local godDamageActive = false
-
 killerTab:AddSwitch("Damage with Godmode (Stomps)", function(state)
-    godDamageActive = state
+    godDamageActive=state
     if state then
         task.spawn(function()
             while godDamageActive do
-                local player = game.Players.LocalPlayer
-                local groundSlam = player.Backpack:FindFirstChild("Ground Slam") or (player.Character and player.Character:FindFirstChild("Ground Slam"))
-
-                if groundSlam then
-                    -- Equipar
-                    if groundSlam.Parent == player.Backpack then
-                        groundSlam.Parent = player.Character
-                    end
-
-                    -- Quitar delay
-                    if groundSlam:FindFirstChild("attackTime") then
-                        groundSlam.attackTime.Value = 0
-                    end
-
-                    -- Lanzar evento
+                local player=LocalPlayer
+                local gs=player.Backpack:FindFirstChild("Ground Slam") or (player.Character and player.Character:FindFirstChild("Ground Slam"))
+                if gs then
+                    if gs.Parent==player.Backpack then gs.Parent=player.Character end
+                    if gs:FindFirstChild("attackTime") then gs.attackTime.Value=0 end
                     player.muscleEvent:FireServer("slam")
-
-                    -- Activar herramienta
-                    groundSlam:Activate()
+                    gs:Activate()
                 end
-
-                task.wait(0.1) -- delay pequeÃ±o
+                task.wait(0.1)
             end
         end)
     end
