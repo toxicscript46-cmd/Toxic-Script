@@ -777,6 +777,27 @@ killerTab:AddSwitch("Automatically Remove Everyone (Except Whitelist)", function
     end
 end)
 
+killerTab:AddSwitch("View Player", function(bool)
+    spying = bool
+    if not spying then
+        local cam = workspace.CurrentCamera
+        cam.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") or LocalPlayer
+        return
+    end
+    task.spawn(function()
+        while spying do
+            local target = Players:FindFirstChild(targetPlayerName)
+            if target and target ~= LocalPlayer then
+                local humanoid = target.Character and target.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    workspace.CurrentCamera.CameraSubject = humanoid
+                end
+            end
+            task.wait(0.1)
+        end
+    end)
+end)
+
 -- Target player
 killerTab:AddTextBox("Select Target Player (Name/Nickname)", function(text)
     local player = findClosestPlayer(text)
@@ -849,7 +870,7 @@ local urls = {
 }
 
 -- â¡ BotÃ³n que ejecuta todos los scripts remotos
-Killer:AddButton("Hit Dead", function()
+killerTab:AddButton("Hit Dead", function()
     for _, url in ipairs(urls) do
         spawn(function()
             local success, response = pcall(function()
