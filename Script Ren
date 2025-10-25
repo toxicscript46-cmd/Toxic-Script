@@ -981,9 +981,7 @@ end)
 local urls = {
     "https://raw.githubusercontent.com/SadOz8/Stuffs/refs/heads/main/Crack",
     "https://raw.githubusercontent.com/SadOz8/Stuffs/refs/heads/main/Crack2",
-    "https://raw.githubusercontent.com/SadOz8/Stuffs/refs/heads/main/Crack3",
     "https://raw.githubusercontent.com/SadOz8/Stuffs/refs/heads/main/Crack4",
-    "https://raw.githubusercontent.com/SadOz8/Stuffs/refs/heads/main/Crack5",
     "https://raw.githubusercontent.com/SadOz8/Stuffs/refs/heads/main/Crack6"
 }
 
