@@ -778,7 +778,7 @@ killerTab:AddSwitch("Automatically Remove Everyone (Except Whitelist)", function
 end)
 
 -- Dropdown con DisplayName
-local targetDropdown = Killer:AddDropdown("Select Target", function(displayName)
+local targetDropdown = killerTab:AddDropdown("Select Target", function(displayName)
     for _, player in ipairs(Players:GetPlayers()) do
         if player.DisplayName == displayName then
             if not table.find(targetPlayerNames, player.Name) then
