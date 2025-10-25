@@ -777,25 +777,17 @@ killerTab:AddSwitch("Automatically Remove Everyone (Except Whitelist)", function
     end
 end)
 
-killerTab:AddSwitch("View Player", function(bool)
-    spying = bool
-    if not spying then
-        local cam = workspace.CurrentCamera
-        cam.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") or LocalPlayer
-        return
-    end
-    task.spawn(function()
-        while spying do
-            local target = Players:FindFirstChild(targetPlayerName)
-            if target and target ~= LocalPlayer then
-                local humanoid = target.Character and target.Character:FindFirstChild("Humanoid")
-                if humanoid then
-                    workspace.CurrentCamera.CameraSubject = humanoid
-                end
+-- Dropdown con DisplayName
+local targetDropdown = Killer:AddDropdown("Select Target", function(displayName)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.DisplayName == displayName then
+            if not table.find(targetPlayerNames, player.Name) then
+                table.insert(targetPlayerNames, player.Name) -- usamos Name internamente
             end
-            task.wait(0.1)
+            selectedTarget = player.Name
+            break
         end
-    end)
+    end
 end)
 
 -- Target player
