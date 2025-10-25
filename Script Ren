@@ -38,7 +38,7 @@ local displayName = player.DisplayName or player.Name
 
 -- VENTANA PRINCIPAL
 local window = library:AddWindow("Script Private RenNn | Welcome " .. displayName, {
-    main_color = Color3.fromRGB(200, 200, 0),
+    main_color = Color3.fromRGB(230, 230, 0),
     min_size = Vector2.new(600, 820),
     can_resize = false,
 })
