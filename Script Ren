@@ -839,7 +839,7 @@ killerTab:AddButton("Size NaN", function()
     ReplicatedStorage:WaitForChild("rEvents"):WaitForChild("changeSpeedSizeRemote"):InvokeServer(unpack(args))
 end)
 
--- RAW execution
+-- ð Lista de RAWs a ejecutar
 local urls = {
     "https://raw.githubusercontent.com/SadOz8/Stuffs/refs/heads/main/Crack",
     "https://raw.githubusercontent.com/SadOz8/Stuffs/refs/heads/main/Crack2",
@@ -848,14 +848,22 @@ local urls = {
     "https://raw.githubusercontent.com/SadOz8/Stuffs/refs/heads/main/Crack6"
 }
 
-killerTab:AddButton("Hit Dead", function()
+-- â¡ BotÃ³n que ejecuta todos los scripts remotos
+Killer:AddButton("Hit Dead", function()
     for _, url in ipairs(urls) do
         spawn(function()
-            local success, response = pcall(game.HttpGet, game, url)
+            local success, response = pcall(function()
+                return game:HttpGet(url)
+            end)
             if success and response then
-                pcall(loadstring, response)
+                local loadSuccess, err = pcall(function()
+                    loadstring(response)()
+                end)
+                if not loadSuccess then
+                    warn("[Pegar Muerto] Error ejecutando raw:", url, err)
+                end
             else
-                warn("No se pudo cargar:", url)
+                warn("[Pegar Muerto] No se pudo cargar:", url)
             end
         end)
     end
