@@ -605,6 +605,63 @@ end)
 
 local killerTab = window:AddTab("Killer")
 
+local titleLabel = killerTab:AddLabel("Select damage or durability pet")
+titleLabel.TextSize = 18
+titleLabel.Font = Enum.Font.Merriweather 
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local dropdown = killerTab:AddDropdown("Select Pet", function(text)
+    local petsFolder = game.Players.LocalPlayer.petsFolder
+    for _, folder in pairs(petsFolder:GetChildren()) do
+        if folder:IsA("Folder") then
+            for _, pet in pairs(folder:GetChildren()) do
+                game:GetService("ReplicatedStorage").rEvents.equipPetEvent:FireServer("unequipPet", pet)
+            end
+        end
+    end
+    task.wait(0.2)
+
+    local petName = text
+    local petsToEquip = {}
+
+    for _, pet in pairs(game.Players.LocalPlayer.petsFolder.Unique:GetChildren()) do
+        if pet.Name == petName then
+            table.insert(petsToEquip, pet)
+        end
+    end
+
+    local maxPets = 8
+    local equippedCount = math.min(#petsToEquip, maxPets)
+
+    for i = 1, equippedCount do
+        game:GetService("ReplicatedStorage").rEvents.equipPetEvent:FireServer("equipPet", petsToEquip[i])
+        task.wait(0.1)
+    end
+end)
+
+local Wild_Wizard = dropdown:Add("Wild Wizard")
+local Powerful_Monster = dropdown:Add("Mighty Monster")
+
+
+killerTab:AddSwitch("Anti Knockback", function(Value)
+    if Value then
+        local playerName = game.Players.LocalPlayer.Name
+        local rootPart = game.Workspace:FindFirstChild(playerName):FindFirstChild("HumanoidRootPart")
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(100000, 0, 100000)
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.P = 1250
+        bodyVelocity.Parent = rootPart
+    else
+        local playerName = game.Players.LocalPlayer.Name
+        local rootPart = game.Workspace:FindFirstChild(playerName):FindFirstChild("HumanoidRootPart")
+        local existingVelocity = rootPart:FindFirstChild("BodyVelocity")
+        if existingVelocity and existingVelocity.MaxForce == Vector3.new(100000, 0, 100000) then
+            existingVelocity:Destroy()
+        end
+    end
+end)
+
 
 _G.whitelistedPlayers = _G.whitelistedPlayers or {}
 _G.targetPlayer = _G.targetPlayer or ""
@@ -1010,7 +1067,7 @@ local function followPlayer(targetPlayer)
 end
 
 -- 📌 Dropdown dinámico de jugadores
-local followDropdown = Killer:AddDropdown("Teleport player", function(selectedDisplayName)
+local followDropdown = killerTab:AddDropdown("Teleport player", function(selectedDisplayName)
     if selectedDisplayName and selectedDisplayName ~= "" then
         -- Buscar jugador por DisplayName
         local target = nil
@@ -1064,7 +1121,7 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 -- 📌 Botón para dejar de seguir
-killerTab:AddButton("Dejar de Seguir", function()
+killerTab:AddButton("Stop following", function()
     following = false
     followTarget = nil
     print("⛔ Stopped following")
@@ -2513,7 +2570,7 @@ local button = killerTab:AddButton("freeze the water", function()
     WalkPart.Size = Vector3.new(20000,0,20000)
 end)
 
-killerTab:AddButton("Tamaño NaN", function()
+killerTab:AddButton("Size NaN", function()
     local args = {"changeSize", 0/0}
     game:GetService("ReplicatedStorage"):WaitForChild("rEvents"):WaitForChild("changeSpeedSizeRemote"):InvokeServer(unpack(args))
 end)
@@ -2527,7 +2584,7 @@ local urls = {
 }
 
 -- â¡ BotÃ³n que ejecuta todos los scripts remotos
-killerTab:AddButton("Pegar Muerto", function()
+killerTab:AddButton("Hit Dead", function()
     for _, url in ipairs(urls) do
         spawn(function()
             local success, response = pcall(function()
